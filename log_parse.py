@@ -1,27 +1,27 @@
 # -*- encoding: utf-8 -*-
-def otchistkaURL(str, www):
-    if str.find('?') > 0:
-        s = str[:str.find('?')]
+from collections import defaultdict
+import re
+def otchistkaURL(URL, www):
+    find_Yak=URL.find('?')
+    find_https=URL.find('https://')
+    if find_Yak > 0:
+        URL = URL[:find_Yak]
+    if URL[len(URL) - 1] == '/':
+        excfile = False
     else:
-        s = str
-    if s[len(s) - 1] == '/':
-        excfile = 0
-    else:
-        excfile = 1
-    s1 = s[:4]
-    if s.find('https') > -1:
-        s2 = s[5:]
-    else:
-        s2 = s[4:]
+        excfile = True
+    if find_https > -1:
+        URL=URL[:4]+URL[5:]
     if www:
-        if s2.find('www') > 0:
-            s3 = s2[:s2.find('www')]
-            s4 = s2[(s2.find('www') + 4):]
-            return s1 + s3 + s4, excfile
+        find_www=URL.find('://www.')
+        if find_www > -1:
+            URL='http://'+URL[find_www+7:]
+            print(URL)
+            return URL, excfile
         else:
-            return s1 + s2, excfile
+            return URL, excfile
     else:
-        return s1 + s2, excfile
+        return URL, excfile
 
 
 def logcreation(str, www):
@@ -41,40 +41,42 @@ def logcreation(str, www):
 
 
 def proverkanalog(str):
-    if str[0] == '[' and str[21] == ']':
-        return 1
-    return 0
+    sentencehttp=re.compile('[[]\w{2}[/]\D{3}[/]\w{4}[ ]\w{2}[:]\w{2}[:]\w{2}[]][ ]["]\w*[ ][h][t][t][p][:s][:/][/]')
+    result=sentencehttp.match(str)
+    if result:
+        return True
+    return False
 
 
 def proverka(log, ignfile, reqtype, start, stop):
-    if ignfile > 0:
-        if log['excistfile'] == 0:
-            provfile = 1
+    if ignfile == True:
+        if log['excistfile'] == False:
+            provfile = True
         else:
-            provfile = 0
+            provfile = False
     else:
-        provfile = 1
+        provfile = True
     if reqtype == None:
-        provtype = 1
+        provtype = True
     else:
         if reqtype == log['requesttype']:
-            provtype = 1
+            provtype = True
         else:
-            provtype = 0
+            provtype = False
     if start == None:
-        provstart = 1
+        provstart = True
     else:
         if start < log['data']:
-            provstart = 1
+            provstart = True
         else:
-            provstart = 0
+            provstart = False
     if stop == None:
-        provstop = 1
+        provstop = True
     else:
         if stop > log['data']:
-            provstop = 1
+            provstop = True
         else:
-            provstop = 0
+            provstop = False
     return provfile * provstart * provstop * provtype
 
 
@@ -101,34 +103,24 @@ def parse(
         slow_queries=False
 ):
     logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www)
-    dict = {}
-    if slow_queries == 0:
+    MassZnach=defaultdict(int)
+    if slow_queries == False:
         for log in logs:
-            if dict.get(log['url']) == None:
-                dict[log['url']] = 1
-            else:
-                dict[log['url']] += 1
-        l = dict.values()
-        o = list(l)
-        o.sort()
-        o.reverse()
-        return (o[:5])
+            MassZnach[log['url']]+= 1
+        ListZnach = list(MassZnach.values())
+        ListZnach.sort()
+        ListZnach.reverse()
+        return (ListZnach[:5])
     else:
-        dict1 = {}
+        MassVremenyOj = defaultdict(int)
         for log in logs:
-            if dict.get(log['url']) == None:
-                dict[log['url']] = log['responsetime']
-                dict1[log['url']] = 1
-            else:
-                dict[log['url']] += log['responsetime']
-                dict1[log['url']] += 1
-        l = dict.values()
-        l1 = dict1.values()
-        o = list(l)
-        o1 = list(l1)
+            MassVremenyOj[log['url']] += log['responsetime']
+            MassZnach[log['url']] += 1
+        ListZnach = list(MassZnach.values())
+        ListVremeny = list(MassVremenyOj.values())
         itog = []
-        for i in range(0, len(o), 1):
-            itog.append(int(o[i] / o1[i]))
+        for i in range(0, len(ListZnach), 1):
+            itog.append(int(ListVremeny[i] /ListZnach[i]))
         itog.sort()
         itog.reverse()
         return (itog[:5])
