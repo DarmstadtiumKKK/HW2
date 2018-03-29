@@ -38,14 +38,22 @@ def logcreation(stroka, www):
 
 
 def proverkanalog(str):
-    sentencehttp=re.compile('[[]\w{2}[/]\D{3}[/]\w{4}[ ]\w{2}[:]\w{2}[:]\w{2}[]][ ]["]\w*[ ][h][t][t][p][:s][:/][/]')
+    sentencehttp=re.compile('[[]\w{2}[/]\D{3}[/]\w{4}[ ]\w{2}[:]\w{2}[:]\w{2}[]][ ]["]\w*[ ]\w*://')
     result=sentencehttp.match(str)
     if result:
         return True
     return False
 
 
-def proverka(log, ignfile, reqtype, start, stop):
+def proverka(log, ignfile, reqtype, start, stop,ignorlist):
+    if ignorlist==[]:
+        ignor=True
+    else:
+        for ignorurl in ignorlist:
+            if log['url']==ignorurl:
+                ignor=False
+            else:
+                ignor=True
     if ignfile == True:
         if log['excistfile'] == False:
             provfile = True
@@ -74,18 +82,17 @@ def proverka(log, ignfile, reqtype, start, stop):
             provstop = True
         else:
             provstop = False
-    return provfile and provstart and provstop and provtype
+    return provfile and provstart and provstop and provtype and ignor
 
 
-def poisk(ignfile, reqtype, start, stop, www):
+def poisk(ignfile, reqtype, start, stop, www, ignorlist):
     f = open('log.log', 'r')
     logs = []
     for line in f:
         if proverkanalog(line):
             log = logcreation(line, www)
-            if proverka(log, ignfile, reqtype, start, stop):
+            if proverka(log, ignfile, reqtype, start, stop, ignorlist):
                 logs.append(log)
-                print(log)
     return logs
 
 
@@ -98,13 +105,12 @@ def parse(
         ignore_www=False,
         slow_queries=False
 ):
-    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www)
+    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www,ignore_urls)
     MassZnach=defaultdict(int)
     if slow_queries == False:
         for log in logs:
             MassZnach[log['url']]+= 1
         ListZnach = list(MassZnach.values())
-        print(MassZnach)
         ListZnach.sort(reverse=True)
         return (ListZnach[:5])
     else:
