@@ -2,41 +2,39 @@
 from collections import defaultdict
 import re
 def otchistkaURL(URL, www):
-    find_Yak=URL.find('?')
-    find_https=URL.find('https://')
-    if find_Yak > 0:
-        URL = URL[:find_Yak]
+    URL=re.match(r'\w*://(www\.)?([\w\.]*)(/([\w\.\/-]*)/?)',URL).group()
+    request=re.match(r'\w*',URL).group()
+    URL=URL[len(request)+3:]
+    first_domen=re.match(r'\w*',URL).group()
+    URL=URL[len(first_domen)+1:]
     if URL[len(URL) - 1] == '/':
         excfile = False
     else:
         excfile = True
-    if find_https > -1:
-        URL=URL[:4]+URL[5:]
-    if www:
-        find_www=URL.find('://www.')
-        if find_www > -1:
-            URL='http://'+URL[find_www+7:]
-            return URL, excfile
-        else:
-            return URL, excfile
+    if request=='https':
+        request='http'
+    if www==True and first_domen=='www':
+        URL=request+'://'+URL
     else:
-        return URL, excfile
+        URL=request+'://'+first_domen+'.'+URL
+    return URL,excfile
 
 
-def logcreation(str, www):
-    a = str.split(' ')
-    data = a[0][: len(a[0])]
-    requesttype = a[2][1:]
-    url, excistfile = otchistkaURL(a[3], www)
-    responsetime = int(a[6][:(len(a[6]) - 1)])
-    dict = {
+
+def logcreation(stroka, www):
+    vhod_data = stroka.split(' ')
+    data = vhod_data[0][: len(vhod_data[0])]
+    requesttype = vhod_data[2][1:]
+    url, excistfile = otchistkaURL(vhod_data[3], www)
+    responsetime = int(vhod_data[6][:(len(vhod_data[6]) - 1)])
+    log = {
         "data": data,
         "requesttype": requesttype,
         "url": url,
         "excistfile": excistfile,
         "responsetime": responsetime
     }
-    return dict
+    return log
 
 
 def proverkanalog(str):
@@ -76,7 +74,7 @@ def proverka(log, ignfile, reqtype, start, stop):
             provstop = True
         else:
             provstop = False
-    return provfile * provstart * provstop * provtype
+    return provfile and provstart and provstop and provtype
 
 
 def poisk(ignfile, reqtype, start, stop, www):
@@ -87,8 +85,7 @@ def poisk(ignfile, reqtype, start, stop, www):
             log = logcreation(line, www)
             if proverka(log, ignfile, reqtype, start, stop):
                 logs.append(log)
-    '''for log in logs:
-        print(log)'''
+                print(log)
     return logs
 
 
@@ -107,8 +104,8 @@ def parse(
         for log in logs:
             MassZnach[log['url']]+= 1
         ListZnach = list(MassZnach.values())
-        ListZnach.sort()
-        ListZnach.reverse()
+        print(MassZnach)
+        ListZnach.sort(reverse=True)
         return (ListZnach[:5])
     else:
         MassVremenyOj = defaultdict(int)
@@ -120,6 +117,5 @@ def parse(
         itog = []
         for i in range(0, len(ListZnach), 1):
             itog.append(int(ListVremeny[i] /ListZnach[i]))
-        itog.sort()
-        itog.reverse()
+        itog.sort(reverse=True)
         return (itog[:5])
