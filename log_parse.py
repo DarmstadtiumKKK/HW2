@@ -16,7 +16,6 @@ def otchistkaURL(URL, www):
         find_www=URL.find('://www.')
         if find_www > -1:
             URL='http://'+URL[find_www+7:]
-            print(URL)
             return URL, excfile
         else:
             return URL, excfile
