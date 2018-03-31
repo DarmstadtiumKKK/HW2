@@ -70,14 +70,19 @@ def proverka(log, ignfile, reqtype, start, stop, ignorlist):
     return True
 
 
-def poisk(ignfile, reqtype, start, stop, www, ignorlist):
+def poisk(ignfile, reqtype, start, stop, www, ignorlist, check):
     f = open('log.log', 'r')
     logs = []
+    mas_times = []
     for line in f:
         if proverkanalog(line):
             log = logcreation(line, www)
             if proverka(log, ignfile, reqtype, start, stop, ignorlist):
-                logs.append(log)
+                if check:
+                    logs.append(log)
+                else:
+                    logs.append(log['url'])
+                    mas_times.append(log['responsetime'])
     return logs
 
 
@@ -90,17 +95,15 @@ def parse(
         ignore_www=False,
         slow_queries=False
 ):
-    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www, ignore_urls)
+    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www, ignore_urls,slow_queries)
     if slow_queries is False:
-        mass_znach = collections.Counter()
-        for log in logs:
-            mass_znach[log['url']] += 1
+        mass_znach = collections.Counter(logs)
         itog = list(dict(mass_znach.most_common(5)).values())
         itog.sort(reverse=True)
         return itog
     else:
-        mass_znach = collections.Counter()
-        mass_vremeny_oj = collections.Counter()
+        mass_znach = collections.defaultdict(int)
+        mass_vremeny_oj = collections.defaultdict(int)
         for log in logs:
             mass_vremeny_oj[log['url']] += log['responsetime']
             mass_znach[log['url']] += 1
