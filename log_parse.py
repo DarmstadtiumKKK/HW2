@@ -1,24 +1,32 @@
 # -*- encoding: utf-8 -*-
-from collections import defaultdict
+import collections
 import re
+
+
 def otchistka_url(url, www):
-    url=re.match(r'\w*://(www\.)?([\w\.]*)(/([\w\.\/-]*)/?)',url).group()
-    request=re.match(r'\w*',url).group()
-    url=url[len(request)+3:]
-    first_domen=re.match(r'\w*',url).group()
-    url=url[len(first_domen)+1:]
+    url = re.match(r'\w*://(www\.)?([\w\.]*)(/([\w\.\/-]*)/?)', url).group()
+    request = re.match(r'\w*', url).group()
+    url = url[len(request) + 3:]
+    first_domen = re.match(r'\w*', url).group()
+    url = url[len(first_domen) + 1:]
     if url[len(url) - 1] == '/':
         excfile = False
     else:
         excfile = True
     if request == 'https':
         request = 'http'
-    if www==True and first_domen=='www':
-        url=request+'://'+url
+    shablon = {
+        'request': request,
+        'slash': '://',
+        'domen': first_domen,
+        'hvost': url,
+        'dot': '.'
+    }
+    if www is True and first_domen == 'www':
+        url = "%(request)s%(slash)s%(hvost)s" % shablon  # request+'://'+url
     else:
-        url=request+'://'+first_domen+'.'+url
-    return url,excfile
-
+        url = "%(request)s%(slash)s%(domen)s%(dot)s%(hvost)s" % shablon  # request+'://'+first_domen+'.'+url
+    return url, excfile
 
 
 def logcreation(stroka, www):
@@ -35,28 +43,28 @@ def logcreation(stroka, www):
 
 
 def proverkanalog(stroka):
-    sentencehttp=re.compile('.\w{2}/\D{3}/\w{4} (\w{2}:)*\w{2}] "\w* (([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))? \w*/(\d*.)*\d*" \d* \d*')
-    result=sentencehttp.match(stroka)
+    sentencehttp = re.compile(
+        '.\w{2}/\D{3}/\w{4} (\w{2}:)*\w{2}] "\w* (([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))? \w*/(\d*.)*\d*" \d* \d*')
+    result = sentencehttp.match(stroka)
     if result:
         return True
     return False
 
 
-def proverka(log, ignfile, reqtype, start, stop,ignorlist):
-    if ignorlist!=[]:
-        for ignorurl in ignorlist:
-            if log['url']==ignorurl:
-                return False
-    if ignfile == True:
+def proverka(log, ignfile, reqtype, start, stop, ignorlist):
+    for ignorurl in ignorlist:
+        if log['url'] == ignorurl:
+            return False
+    if ignfile is True:
         if log['excistfile'] == True:
             return False
-    if reqtype != None:
+    if reqtype is not None:
         if reqtype != log['requesttype']:
             return False
-    if start != None:
+    if start is not None:
         if start > log['data']:
             return False
-    if stop != None:
+    if stop is not None:
         if stop < log['data']:
             return False
     return True
@@ -82,16 +90,17 @@ def parse(
         ignore_www=False,
         slow_queries=False
 ):
-    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www,ignore_urls)
-    mass_znach=defaultdict(int)
-    if slow_queries == False:
+    logs = poisk(ignore_files, request_type, start_at, stop_at, ignore_www, ignore_urls)
+    if slow_queries is False:
+        mass_znach = collections.Counter()
         for log in logs:
-            mass_znach[log['url']]+= 1
-        list_znach = list(mass_znach.values())
-        list_znach.sort(reverse=True)
-        return (list_znach[:5])
+            mass_znach[log['url']] += 1
+        itog = list(dict(mass_znach.most_common(5)).values())
+        itog.sort(reverse=True)
+        return itog
     else:
-        mass_vremeny_oj = defaultdict(int)
+        mass_znach = collections.Counter()
+        mass_vremeny_oj = collections.Counter()
         for log in logs:
             mass_vremeny_oj[log['url']] += log['responsetime']
             mass_znach[log['url']] += 1
